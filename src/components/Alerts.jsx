@@ -44,11 +44,13 @@ const Alerts = ({ user }) => {
   };
 
   const getAlertColor = (action) => {
+    const highRiskActions = ['modified', 'deleted', 'edited', 'unauthorized_download_attempt', 'unauthorized_edit_attempt', 'unauthorized_delete_attempt', 'unauthorized_move_attempt', 'integrity_violation'];
+    if (highRiskActions.includes(action)) {
+      return 'bg-red-100 text-red-800';
+    }
+
     switch (action) {
       case 'uploaded': return 'bg-blue-100 text-blue-800';
-      case 'modified': return 'bg-red-100 text-red-800';
-      case 'edited': return 'bg-yellow-100 text-yellow-800';
-      case 'deleted': return 'bg-red-100 text-red-800';
       case 'moved': return 'bg-purple-100 text-purple-800';
       case 'renamed': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -57,7 +59,7 @@ const Alerts = ({ user }) => {
 
   const getStats = () => {
     const total = alerts.length;
-    const highRisk = alerts.filter(a => ['modified', 'deleted', 'edited'].includes(a.action)).length;
+    const highRisk = alerts.filter(a => ['modified', 'deleted', 'edited', 'unauthorized_download_attempt', 'unauthorized_edit_attempt', 'unauthorized_delete_attempt', 'unauthorized_move_attempt', 'integrity_violation'].includes(a.action)).length;
     return { total, highRisk };
   };
 
@@ -170,11 +172,11 @@ const Alerts = ({ user }) => {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          ['modified', 'deleted', 'edited'].includes(alert.action)
+                          ['modified', 'deleted', 'edited', 'unauthorized_download_attempt', 'unauthorized_edit_attempt', 'unauthorized_delete_attempt', 'unauthorized_move_attempt', 'integrity_violation'].includes(alert.action)
                             ? 'bg-red-100 text-red-800'
                             : 'bg-green-100 text-green-800'
                         }`}>
-                          {['modified', 'deleted', 'edited'].includes(alert.action) ? 'High Risk' : 'Normal'}
+                          {['modified', 'deleted', 'edited', 'unauthorized_download_attempt', 'unauthorized_edit_attempt', 'unauthorized_delete_attempt', 'unauthorized_move_attempt', 'integrity_violation'].includes(alert.action) ? 'High Risk' : 'Normal'}
                         </span>
                       </td>
                     </tr>

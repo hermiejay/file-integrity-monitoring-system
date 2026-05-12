@@ -154,21 +154,7 @@ const FileScanner = ({ user }) => {
   };
 
   const startMoveFile = (fileData) => {
-    if (fileData.uploadedBy !== user.username) {
-      const alerts = JSON.parse(localStorage.getItem('alerts') || '[]');
-      alerts.push({
-        username: user.username,
-        file: fileData.filename,
-        action: 'unauthorized_move_attempt',
-        targetUser: fileData.uploadedBy,
-        risk: 'high',
-        date: new Date().toISOString()
-      });
-      localStorage.setItem('alerts', JSON.stringify(alerts));
-      setResult({
-        status: 'unauthorized_access',
-        message: `⚠️ ALERT! You can only move files you uploaded. Admin has been notified!`
-      });
+    if (!verifyHashPrompt(fileData, 'move')) {
       return;
     }
     setFileToMove(fileData);
@@ -403,39 +389,44 @@ const FileScanner = ({ user }) => {
     }
   };
 
-  const downloadFile = (fileData) => {
-    // Check if user is the owner or has correct hash
-    if (fileData.uploadedBy === user.username) {
-      // Owner can download without hash verification
-      performDownload(fileData);
-    } else {
-      // Ask for hash verification for other users
-      const enteredHash = prompt(`This file was uploaded by ${fileData.uploadedBy}. Enter the correct ${fileData.algorithm.toUpperCase()} hash to download:`);
-      if (enteredHash && enteredHash.trim() === fileData.hash) {
-        performDownload(fileData);
-        setResult({
-          status: 'authorized_download',
-          message: `File "${fileData.filename}" downloaded successfully with correct hash verification`
-        });
-      } else {
-        // Create alert for unauthorized access attempt - high risk
-        const alerts = JSON.parse(localStorage.getItem('alerts') || '[]');
-        alerts.push({
-          username: user.username,
-          file: fileData.filename,
-          action: 'unauthorized_download_attempt',
-          targetUser: fileData.uploadedBy,
-          risk: 'high',
-          date: new Date().toISOString()
-        });
-        localStorage.setItem('alerts', JSON.stringify(alerts));
-
-        setResult({
-          status: 'unauthorized_access',
-          message: `⚠️ ALERT! Unauthorized download attempt for "${fileData.filename}". Admin has been notified!`
-        });
-      }
+  const verifyHashPrompt = (fileData, action) => {
+    const enteredHash = prompt(`Enter the correct ${fileData.algorithm.toUpperCase()} hash for "${fileData.filename}" to ${action}:`);
+    if (!enteredHash) {
+      return false;
     }
+
+    if (enteredHash.trim().toLowerCase() !== fileData.hash.toLowerCase()) {
+      const alerts = JSON.parse(localStorage.getItem('alerts') || '[]');
+      alerts.push({
+        username: user.username,
+        file: fileData.filename,
+        action: `unauthorized_${action}_attempt`,
+        targetUser: fileData.uploadedBy,
+        risk: 'high',
+        date: new Date().toISOString()
+      });
+      localStorage.setItem('alerts', JSON.stringify(alerts));
+
+      setResult({
+        status: 'unauthorized_access',
+        message: `⚠️ ALERT! Wrong hash entered for ${action} on "${fileData.filename}". Admin has been notified!`
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const downloadFile = (fileData) => {
+    if (!verifyHashPrompt(fileData, 'download')) {
+      return;
+    }
+
+    performDownload(fileData);
+    setResult({
+      status: 'authorized_download',
+      message: `File "${fileData.filename}" downloaded successfully with correct hash verification`
+    });
   };
 
   const performDownload = async (fileData) => {
@@ -547,23 +538,7 @@ const FileScanner = ({ user }) => {
   };
 
   const deleteFile = (fileData) => {
-    if (fileData.uploadedBy !== user.username) {
-      // Create alert for unauthorized delete attempt - high risk
-      const alerts = JSON.parse(localStorage.getItem('alerts') || '[]');
-      alerts.push({
-        username: user.username,
-        file: fileData.filename,
-        action: 'unauthorized_delete_attempt',
-        targetUser: fileData.uploadedBy,
-        risk: 'high',
-        date: new Date().toISOString()
-      });
-      localStorage.setItem('alerts', JSON.stringify(alerts));
-
-      setResult({
-        status: 'unauthorized_access',
-        message: `⚠️ ALERT! You can only delete files you uploaded. Admin has been notified!`
-      });
+    if (!verifyHashPrompt(fileData, 'delete')) {
       return;
     }
 
@@ -872,24 +847,14 @@ const FileScanner = ({ user }) => {
                           </button>
                         )}
                           <button
-                            onClick={() => startMoveFile(fileData)}
-                            disabled={fileData.uploadedBy !== user.username}
-                            className={`py-1 px-3 rounded text-sm ${
-                              fileData.uploadedBy === user.username
-                                ? 'bg-purple-500 hover:bg-purple-600 text-white'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
-                          >
-                            📦 Move
-                          </button>
+                          onClick={() => startMoveFile(fileData)}
+                          className="py-1 px-3 rounded text-sm bg-purple-500 hover:bg-purple-600 text-white"
+                        >
+                          📦 Move
+                        </button>
                         <button
                           onClick={() => deleteFile(fileData)}
-                          disabled={fileData.uploadedBy !== user.username}
-                          className={`py-1 px-3 rounded text-sm ${
-                            fileData.uploadedBy === user.username
-                              ? 'bg-red-500 hover:bg-red-600 text-white'
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          }`}
+                          className="py-1 px-3 rounded text-sm bg-red-500 hover:bg-red-600 text-white"
                         >
                           🗑️ Delete
                         </button>
